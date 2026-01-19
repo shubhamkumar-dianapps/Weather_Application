@@ -1,3 +1,84 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
 
-# Create your models here.
+# --- Manager for Efficient Querying ---
+
+class WeatherCacheManager(models.Manager):
+    def get_valid_cache(self, city_name, country_code=None):
+        """
+        Custom manager method to find a valid (unexpired) cache entry.
+        """
+        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 30)
+        expiry_limit = timezone.now() - timedelta(minutes=threshold)
+        
+        query = self.filter(city__iexact=city_name, updated_at__gte=expiry_limit)
+        if country_code:
+            query = query.filter(country__iexact=country_code)
+            
+        return query.first()
+
+# --- Models ---
+
+class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True, verbose_name='Email Address')
+    phone = models.CharField(
+        max_length=15, 
+        unique=True, 
+        verbose_name='Phone Number'
+    )
+    
+    REQUIRED_FIELDS = ['email', 'phone']
+
+    def __str__(self):
+        return self.username
+
+
+class WeatherCache(models.Model):
+    # city stored as-is, but we will use __iexact or lower-case logic for lookups
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100)
+    data = models.JSONField(help_text="Full payload from provider")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = WeatherCacheManager()
+
+    class Meta:
+        # Composite Index: Most searches will be City + Country
+        indexes = [
+            models.Index(fields=['city', 'country'], name='city_country_idx'),
+        ]
+        # Prevents duplicate rows for the same city/country
+        unique_together = ('city', 'country')
+        verbose_name = "Weather Cache"
+
+    @property
+    def is_valid(self):
+        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 30)
+        return self.updated_at >= timezone.now() - timedelta(minutes=threshold)
+
+    def __str__(self):
+        return f"{self.city}, {self.country}"
+
+
+class SearchHistory(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='search_history'
+    )
+    response = models.JSONField()
+    # Keep city name here as a backup in case the Cache entry is deleted
+    city_name_queried = models.CharField(max_length=100)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        unique_together = ('user', 'city_name_queried')
+        verbose_name = "Search History"
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.city_name_queried}"

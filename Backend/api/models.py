@@ -22,7 +22,11 @@ class WeatherCacheManager(models.Manager):
 
 # --- Models ---
 
+<<<<<<< HEAD
 class User(AbstractUser):
+=======
+class CustomUser(AbstractUser):
+>>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390
     email = models.EmailField(unique=True, verbose_name='Email Address')
     phone = models.CharField(
         max_length=15, 
@@ -37,6 +41,10 @@ class User(AbstractUser):
 
 
 class WeatherCache(models.Model):
+<<<<<<< HEAD
+=======
+    # city stored as-is, but we will use __iexact or lower-case logic for lookups
+>>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100)
@@ -53,8 +61,11 @@ class WeatherCache(models.Model):
         # Prevents duplicate rows for the same city/country
         unique_together = ('city', 'country')
         verbose_name = "Weather Cache"
+<<<<<<< HEAD
         verbose_name_plural = "Weather Cache"
 
+=======
+>>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390
 
     @property
     def is_valid(self):
@@ -71,6 +82,7 @@ class SearchHistory(models.Model):
         on_delete=models.CASCADE, 
         related_name='search_history'
     )
+<<<<<<< HEAD
     # Linked to cache so we don't duplicate JSON data in two tables
     response_data = models.JSONField(help_text="The weather data returned to the user for this search.")
     # Keep city name here as a backup in case the Cache entry is deleted
@@ -81,6 +93,17 @@ class SearchHistory(models.Model):
         ordering = ['-timestamp']
         # Ensures a user doesn't have 100 identical rows for the same city
         unique_together = ('user', 'city_name_queried')
+=======
+    response = models.JSONField()
+    # Keep city name here as a backup in case the Cache entry is deleted
+    city_name_queried = models.CharField(max_length=100)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        unique_together = ('user', 'city_name_queried')
+        verbose_name = "Search History"
+>>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390
 
     def __str__(self):
         return f"{self.user.username} -> {self.city_name_queried}"

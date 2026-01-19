@@ -1,6 +1,28 @@
-<<<<<<< HEAD
-./backend
-=======
-./backend
-./core/_pycache_
->>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+backend/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

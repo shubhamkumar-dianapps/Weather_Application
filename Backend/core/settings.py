@@ -37,14 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-<<<<<<< HEAD
     # Third Party Apps
     "rest_framework",
-    # Custom Apps
-=======
-    "rest_framework",
     "rest_framework_simplejwt",
->>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390
+    # Custom Apps
     "api",
 ]
 
@@ -125,13 +121,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-<<<<<<< HEAD
 # Auth User Model
 AUTH_USER_MODEL = 'api.User'
 
 # CACHE TIME
 WEATHER_CACHE_MINUTES = 30
-=======
-AUTH_USER_MODEL = 'api.CustomUser'
-
->>>>>>> 2c9b78eff874e9586df86f3de231f932e6b99390

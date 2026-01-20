@@ -2,29 +2,29 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atmosphere - Modern Weather</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-        }
-    </style>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet" />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css" />
 </head>
 
 <body>
 
     <div class="container">
+
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-brand">Atmosphere</div>
             <div class="nav-links">
                 <span id="user-greeting" class="hidden"></span>
-                <button id="logout-btn" class="hidden">Logout</button>
+                <button id="logout-btn" type="button" class="hidden">Logout</button>
                 <a href="login.html" id="login-link">Login</a>
             </div>
         </nav>
@@ -34,15 +34,19 @@
             <div id="bot-message" class="chat-bubble">
                 Hello! Let's check the weather. First, what <strong>City</strong> is it?
             </div>
-            <form id="chat-form" class="input-group">
-                <input type="text" id="user-input" placeholder="Enter city name..." autocomplete="off">
-                <button type="submit" id="send-btn" class="send-btn">Next</button>
-            </form>
+
+            <!-- NO FORM HERE -->
+            <div id="chat-form" class="input-group">
+                <input id="user-input" type="text" autocomplete="off" placeholder="Enter value..." />
+                <button id="next-btn" type="button" class="send-btn">Next</button>
+            </div>
+
+            <div id="chat-log" class="chat-log"></div>
             <div id="error-display" class="error-msg"></div>
         </div>
 
-        <!-- Weather Display (Hidden initially) -->
-        <div id="weather-display" class="weather-display">
+        <!-- Weather Display (HIDDEN INITIALLY) -->
+        <div id="weather-display" class="weather-display" style="display: none;">
             <div class="weather-card">
                 <h2 id="w-location" class="city-title">--</h2>
                 <div id="w-desc" class="detail-label">--</div>
@@ -63,13 +67,18 @@
                     </div>
                 </div>
             </div>
-            <button id="search-again-btn" class="send-btn" style="margin-top: 2rem;">Check Another Location</button>
+
+            <button id="search-again-btn" type="button" class="send-btn" style="margin-top: 2rem;">
+                Check Another Location
+            </button>
         </div>
+
     </div>
 
     <!-- Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
+
 </body>
 
 </html>

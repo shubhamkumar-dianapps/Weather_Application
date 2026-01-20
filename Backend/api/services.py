@@ -14,9 +14,12 @@ class WeatherService:
         Logs the search history for an authenticated user.
         """
         if user.is_authenticated:
+            # Normalize to uppercase to avoid "Patna" vs "PATNA" duplicates
+            normalized_city = city.strip().upper()
+            
             SearchHistory.objects.update_or_create(
                 user=user,
-                city_name_queried=city,
+                city_name_queried=normalized_city,
                 defaults={
                     'response_data': data
                 }
@@ -27,7 +30,15 @@ class WeatherService:
         """
         Full logic: Cache Check -> External API Fetch -> Cache Save
         """
+        # Normalize inputs for consistent cache definition
+        city = city.strip().upper()
+        if state:
+            state = state.strip().upper()
+        if country:
+            country = country.strip().upper()
+
         # 1. Try to get valid data from our optimized Database Manager
+        # Manager uses iexact, so passing Upper remains valid
         cached_entry = WeatherCache.objects.get_valid_cache(city, state, country)
         if cached_entry:
             print(f"Data fetched from DB for {city}")
@@ -35,11 +46,10 @@ class WeatherService:
 
         # 2. If no valid cache, call OpenWeatherMap
         # Construct query: city,state,country code or just city,country
-        # OWM uses ISO 3166 country codes. If 'country' is a full name, it might fail or fuzzy match.
-        # Ideally, we pass what we have.
         query_parts = [city]
         if state:
             query_parts.append(state)
+        # Note: If user passes 'INDIA', OWM usually handles it, returning 'IN' in sys.country
         if country:
             query_parts.append(country)
         
@@ -58,10 +68,15 @@ class WeatherService:
             api_data = response.json()
 
             # 3. Update or Create Cache entry
+            # KEY FIX: Use API's standardized Name and Country (e.g. "IN" instead of "INDIA")
+            # to ensure the DB stores the canonical version.
+            canonical_city = api_data.get('name', city).upper()
+            canonical_country = api_data.get('sys', {}).get('country', country).upper()
+
             weather_obj, created = WeatherCache.objects.update_or_create(
-                city=city,
-                state=state,
-                country=country if country else api_data.get('sys', {}).get('country', 'Unknown'),
+                city=canonical_city,
+                state=state, # API often doesn't return state clearly, use user's normalized input
+                country=canonical_country,
                 defaults={
                     'data': api_data,
                     'updated_at': timezone.now()
@@ -73,3 +88,5 @@ class WeatherService:
             # Re-raise to be handled by the view or return None/Error dict
             # user view expects to catch Exception, so raising is fine.
             raise e
+
+

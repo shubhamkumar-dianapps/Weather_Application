@@ -61,7 +61,7 @@ class WeatherView(APIView):
             except Exception as e:
                 # Log error silently or to system logger so user isn't affected
                 print(f"Error logging history: {e}")
-
+        
         return Response(data, status=status.HTTP_200_OK)
 
 class SearchHistoryListView(generics.ListAPIView):

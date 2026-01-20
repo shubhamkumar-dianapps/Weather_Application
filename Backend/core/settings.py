@@ -12,6 +12,12 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+import os
+from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -40,13 +46,17 @@ INSTALLED_APPS = [
     # Third Party Apps
     "rest_framework",
     "rest_framework_simplejwt",
+    "corsheaders",
     # Custom Apps
     "api",
+    "authorization",
 ]
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # Added CORS Middleware
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -126,3 +136,28 @@ AUTH_USER_MODEL = 'api.User'
 
 # CACHE TIME
 WEATHER_CACHE_MINUTES = 30
+
+# API KEY
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY", "fc32ffca6b17e7a997a35a4a63e670b9")
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'weather_limited': '5/day',
+        'weather_burst': '10/min',
+    }
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = True  # For development only

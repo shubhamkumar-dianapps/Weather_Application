@@ -7,17 +7,18 @@ from datetime import timedelta
 # --- Manager for Efficient Querying ---
 
 class WeatherCacheManager(models.Manager):
-    def get_valid_cache(self, city_name, country_code=None):
+    def get_valid_cache(self, city_name, state_name, country):
         """
         Custom manager method to find a valid (unexpired) cache entry.
         """
-        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 30)
+        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 60)
         expiry_limit = timezone.now() - timedelta(minutes=threshold)
         
         query = self.filter(city__iexact=city_name, updated_at__gte=expiry_limit)
-        if country_code:
-            query = query.filter(country__iexact=country_code)
-            
+        if state_name:
+            query = query.filter(state__iexact=state_name)
+        if country:
+            query = query.filter(country__iexact=country)  
         return query.first()
 
 # --- Models ---
@@ -48,21 +49,21 @@ class WeatherCache(models.Model):
     class Meta:
         # Composite Index: Most searches will be City + Country
         indexes = [
-            models.Index(fields=['city', 'country'], name='city_country_idx'),
+            models.Index(fields=['city', 'state', 'country'], name='city_country_idx'),
         ]
         # Prevents duplicate rows for the same city/country
-        unique_together = ('city', 'country')
-        verbose_name = "Weather Cache"
+        unique_together = ('city', 'state', 'country')
+        verbose_name = "Weather Cache"  
         verbose_name_plural = "Weather Cache"
 
 
     @property
     def is_valid(self):
-        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 30)
+        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 60)
         return self.updated_at >= timezone.now() - timedelta(minutes=threshold)
 
     def __str__(self):
-        return f"{self.city}, {self.country}"
+        return f"{self.city}, {self.state}, {self.country}"
 
 
 class SearchHistory(models.Model):

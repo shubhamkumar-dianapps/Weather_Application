@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Atmosphere</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="auth-box">
+            <h2 class="auth-title">Welcome Back</h2>
+            <form id="login-form" class="auth-form">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit" class="send-btn" style="width:100%">Login</button>
+            </form>
+            <div id="error-msg" class="error-msg"></div>
+
+            <div class="auth-link">
+                Don't have an account? <a href="register.html">Register</a>
+            </div>
+            <div class="auth-link">
+                <a href="reset-password.html" style="font-size: 0.8rem; opacity: 0.8;">Forgot Password?</a>
+            </div>
+            <div class="auth-link">
+                <a href="index.html">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const err = document.getElementById('error-msg');
+
+            err.style.display = 'none';
+
+            const result = await Auth.login(u, p);
+
+            if (result.success) {
+                window.location.href = 'index.html';
+            } else {
+                err.textContent = result.error;
+                err.style.display = 'block';
+            }
+        });
+
+        // Check for throttle param
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reason') === 'throttle') {
+            const err = document.getElementById('error-msg');
+            err.textContent = "You have exceeded the request limit. Please login to continue.";
+            err.style.display = 'block';
+        }
+        if (urlParams.get('expired') === '1') {
+            const err = document.getElementById('error-msg');
+            err.textContent = "Your session has expired. Please login again.";
+            err.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

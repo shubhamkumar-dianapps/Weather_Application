@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>API Debugger</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 2rem;
+            background: #222;
+            color: #eee;
+        }
+
+        .box {
+            background: #333;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #667eea;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        #log {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .success {
+            color: #50fa7b;
+        }
+
+        .error {
+            color: #ff5555;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>API Connection Debugger</h1>
+    <div class="box">
+        <h3>Step 1: Check Backend Connection</h3>
+        <p>Ensure your backend is running on <code>http://127.0.0.1:8000</code></p>
+        <button onclick="testConnection()">Test Connection</button>
+    </div>
+
+    <div class="box">
+        <h3>Log Output:</h3>
+        <div id="log">Waiting for test...</div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        async function testConnection() {
+            const logEl = document.getElementById('log');
+            logEl.innerHTML = "Testing connection...\n";
+
+            // Test 1: Variable Check
+            logEl.innerHTML += "Checking API_BASE variable... ";
+            if (typeof window.API_BASE !== 'undefined') {
+                logEl.innerHTML += `<span class='success'>OK (${window.API_BASE})</span>\n`;
+            } else {
+                logEl.innerHTML += "<span class='error'>FAIL (Undefined)</span>\n";
+                return;
+            }
+
+            // Test 2: Fetch Weather
+            logEl.innerHTML += "Fetching Weather for London... ";
+            try {
+                const url = `${window.API_BASE}/api/weather/?city=London&state=London&country=GB`;
+                logEl.innerHTML += `\nRequesting: ${url}\n...`;
+
+                const response = await fetch(url);
+                logEl.innerHTML += `\nStatus: ${response.status} ${response.statusText}\n`;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    logEl.innerHTML += `<span class='success'>SUCCESS! Data received.</span>\n`;
+                    logEl.innerHTML += JSON.stringify(data, null, 2);
+                } else {
+                    const text = await response.text();
+                    logEl.innerHTML += `<span class='error'>FAILED. Response:</span>\n${text}`;
+                }
+
+            } catch (e) {
+                logEl.innerHTML += `<span class='error'>CRITICAL ERROR: ${e.message}</span>\n`;
+                logEl.innerHTML += "Possible causes:\n1. Backend server is not running.\n2. CORS is blocking the request (check console).\n3. You are using HTTPS but backend is HTTP.";
+            }
+        }
+    </script>
+</body>
+
+</html>

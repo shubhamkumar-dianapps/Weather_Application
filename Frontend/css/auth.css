@@ -1,0 +1,79 @@
+/* Authentication Page Styles */
+
+/* Inherit variable definitions from style.css if loaded, 
+   but re-defining here for robustness if used standalone */
+:root {
+    --glass-bg: rgba(20, 20, 20, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --primary-accent: #00d2ff;
+    --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.auth-box {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 3rem;
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    margin: 0 auto;
+    animation: fadeIn 0.8s ease-out;
+}
+
+.auth-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 1px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.auth-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.auth-link a {
+    color: var(--primary-accent);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.auth-link a:hover {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* Enhancements for inputs in Auth context */
+.auth-form input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.auth-form input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary-accent);
+    transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}

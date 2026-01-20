@@ -56,7 +56,11 @@ class WeatherView(APIView):
 
         # Log Search History (if authenticated)
         if request.user.is_authenticated:
-            WeatherService.log_history(request.user, city, data)
+            try:
+                WeatherService.log_history(request.user, city, data)
+            except Exception as e:
+                # Log error silently or to system logger so user isn't affected
+                print(f"Error logging history: {e}")
 
         return Response(data, status=status.HTTP_200_OK)
 

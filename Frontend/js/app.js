@@ -12,9 +12,10 @@ const App = {
         this.cacheDOM();
         this.bindEvents();
         if (!this.loadState()) {
-             this.updateBackground('default');
+             this.updateBackground('homepage');
         }
     },
+
 
     cacheDOM() {
         this.chat = document.getElementById('chat-section');
@@ -178,12 +179,13 @@ const App = {
         this.input.value = '';
         
         // Reset background
-        this.updateBackground('default');
+        this.updateBackground('homepage');
     },
 
     updateBackground(condition) {
         const body = document.body;
         const gifMap = {
+            'homepage': "assets/weather/space.jpg",
             'clear': "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExeWxqNGJ4dm43b2lpb2g5aG5xOTlsemJtZ3o4Z2xiZTM1NG9hdHZ4cSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/0Styincf6K2tvfjb5Q/giphy.gif",
             'clouds': "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZW42eWsyemR6ZTBxMzF1NW9vN2Y3aGFtZmt3ejRpaHo1MDZxanF3cSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/1TpGKApbHmkZa/giphy.gif",
             'rain': "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYncwb3JjdmV1aWlmbjF0ZXU4bTIxcGwxbmF3NGJkbzh4dnFmbTBqbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/t7Qb8655Z1VfBGr5XB/giphy.gif",

@@ -19,10 +19,9 @@
 }
 
 body {
-    /* Premium Animated Gradient Fallback */
-    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
+    /* Premium Fixed Background */
+    background: url('../assets/weather/space.jpg') no-repeat center center fixed;
+    background-size: cover;
     
     min-height: 100vh;
     color: var(--text-main);
@@ -33,11 +32,7 @@ body {
     transition: background-image 0.5s ease-in-out;
 }
 
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+/* Dark overlay to ensure text readability on bright GIFs */
 
 /* Dark overlay to ensure text readability on bright GIFs */
 

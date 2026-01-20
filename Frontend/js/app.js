@@ -1,4 +1,4 @@
-console.log('🔥 app.js loaded at', new Date().toISOString());
+
 
 const App = {
     step: 0,
@@ -12,7 +12,7 @@ const App = {
         this.cacheDOM();
         this.bindEvents();
         if (!this.loadState()) {
-             this.updateBackground('homepage');
+            this.updateBackground('homepage');
         }
     },
 
@@ -36,6 +36,15 @@ const App = {
         this.wFeels = document.getElementById('w-feels-like');
         this.wHumidity = document.getElementById('w-humidity');
         this.wWind = document.getElementById('w-wind');
+
+        // New Elements
+        this.wHighLow = document.getElementById('w-high-low');
+        this.wPressure = document.getElementById('w-pressure');
+        this.wVisibility = document.getElementById('w-visibility');
+        this.wSunrise = document.getElementById('w-sunrise');
+        this.wSunset = document.getElementById('w-sunset');
+        this.wClouds = document.getElementById('w-clouds');
+        this.wCoords = document.getElementById('w-coords');
     },
 
     bindEvents() {
@@ -66,12 +75,12 @@ const App = {
             this.params.city = value;
             this.bot.innerHTML = 'Which <strong>State</strong>?';
             this.step++;
-        } 
+        }
         else if (this.step === 1) {
             this.params.state = value;
             this.bot.innerHTML = 'Which <strong>Country</strong>?';
             this.step++;
-        } 
+        }
         else {
             this.params.country = value;
             this.fetchWeather();
@@ -115,14 +124,25 @@ const App = {
 
         const country = data.sys ? data.sys.country : this.params.country;
         this.wLocation.textContent = `${this.params.city}, ${country}`;
-        
+
         const desc = data.weather[0].description;
         this.wDesc.textContent = desc.charAt(0).toUpperCase() + desc.slice(1);
-        
+
         this.wTemp.textContent = `${Math.round(data.main.temp)}°C`;
         this.wFeels.textContent = `${Math.round(data.main.feels_like)}°C`;
         this.wHumidity.textContent = `${data.main.humidity}%`;
         this.wWind.textContent = `${data.wind.speed} m/s`;
+
+        // Render New Data
+        this.wHighLow.textContent = `${Math.round(data.main.temp_max)}°C / ${Math.round(data.main.temp_min)}°C`;
+        this.wPressure.textContent = `${data.main.pressure} hPa`;
+        this.wVisibility.textContent = `${(data.visibility / 1000).toFixed(1)} km`;
+        this.wClouds.textContent = `${data.clouds.all}%`;
+
+        this.wSunrise.textContent = this.formatTime(data.sys.sunrise, data.timezone);
+        this.wSunset.textContent = this.formatTime(data.sys.sunset, data.timezone);
+
+        this.wCoords.textContent = `Lat: ${data.coord.lat}, Lon: ${data.coord.lon}`;
 
         // Update Background
         if (data.weather && data.weather[0]) {
@@ -162,7 +182,20 @@ const App = {
         this.error.textContent = message;
         this.error.style.display = 'block';
         this.container.style.display = 'flex';
-        this.bot.innerHTML = 'Please try again';
+
+        // Provide a clear way to retry
+        this.bot.innerHTML = `
+            <div>Something went wrong.</div>
+            <button id="retry-btn" class="send-btn" style="margin-top: 10px; padding: 0.5rem 1rem; font-size: 0.9rem;">Try Again</button>
+        `;
+
+        // Bind the retry button
+        setTimeout(() => {
+            const retryBtn = document.getElementById('retry-btn');
+            if (retryBtn) {
+                retryBtn.onclick = () => this.reset();
+            }
+        }, 0);
     },
 
     reset() {
@@ -177,7 +210,7 @@ const App = {
         this.bot.innerHTML = 'What <strong>City</strong> are you checking?';
         this.error.style.display = 'none';
         this.input.value = '';
-        
+
         // Reset background
         this.updateBackground('homepage');
     },
@@ -207,6 +240,21 @@ const App = {
         body.style.backgroundPosition = 'center';
         body.style.backgroundRepeat = 'no-repeat';
         body.style.backgroundAttachment = 'fixed';
+    },
+
+    formatTime(unixTimestamp, timezoneOffset) {
+        // Create date object in UTC
+        const date = new Date((unixTimestamp + timezoneOffset) * 1000);
+        // Manual formatting to ensure we show "local" time of the city relative to UTC
+        // But simply `new Date(unix * 1000)` gives browser local time. 
+        // To show "City Time" we need to handle offset manually if we want absolute correctness, 
+        // but typically just converting to locale string is enough if we ignore timezone or use UTC+offset.
+        // Let's use a simple HH:MM format ignoring the offset for now to keep it standard per user locale 
+        // OR better: use the browser's ability to offset.
+
+        // Actually, easiest way to just show 12hr time:
+        const d = new Date(unixTimestamp * 1000);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 };
 

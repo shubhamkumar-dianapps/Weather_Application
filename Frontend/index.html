@@ -27,6 +27,7 @@
                 <button id="logout-btn" type="button" class="hidden">Logout</button>
                 <a href="login.html" id="login-link">Login</a>
             </div>
+
         </nav>
 
         <!-- Chat Interface -->
@@ -47,30 +48,88 @@
 
         <!-- Weather Display (HIDDEN INITIALLY) -->
         <div id="weather-display" class="weather-display" style="display: none;">
-            <div class="weather-card">
-                <h2 id="w-location" class="city-title">--</h2>
-                <div id="w-desc" class="detail-label">--</div>
-                <div id="w-temp" class="temp-large">--°</div>
 
-                <div class="weather-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Feels Like</span>
-                        <span id="w-feels-like" class="detail-value">--°</span>
+            <div class="weather-dashboard js-glass">
+
+                <!-- Left Panel: Main Info -->
+                <div class="dashboard-main">
+                    <div class="weather-header">
+                        <h2 id="w-location" class="city-title">--</h2>
+                        <div id="w-desc" class="weather-desc">--</div>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Humidity</span>
-                        <span id="w-humidity" class="detail-value">--%</span>
+
+                    <div class="main-temp-container">
+                        <div id="w-temp" class="temp-huge">--°</div>
                     </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Wind</span>
-                        <span id="w-wind" class="detail-value">-- km/h</span>
+
+                    <button id="search-again-btn" type="button" class="btn-refresh">
+                        <i class="fa-solid fa-rotate-right"></i> Check Another
+                    </button>
+                </div>
+
+                <!-- Right Panel: Grid Details -->
+                <div class="dashboard-details">
+                    <div class="weather-details-grid">
+                        <!-- Row 1 -->
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-temperature-half grid-icon"></i>
+                            <span id="w-feels-like" class="val-lg">--°</span>
+                            <span class="lbl-sm">Feels Like</span>
+                        </div>
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-temperature-arrow-up grid-icon"></i>
+                            <span id="w-high-low" class="val-lg">-- / --</span>
+                            <span class="lbl-sm">High / Low</span>
+                        </div>
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-droplet grid-icon"></i>
+                            <span id="w-humidity" class="val-lg">--%</span>
+                            <span class="lbl-sm">Humidity</span>
+                        </div>
+
+                        <!-- Row 2 -->
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-wind grid-icon"></i>
+                            <span id="w-wind" class="val-lg">-- m/s</span>
+                            <span class="lbl-sm">Wind</span>
+                        </div>
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-gauge-high grid-icon"></i>
+                            <span id="w-pressure" class="val-lg">-- hPa</span>
+                            <span class="lbl-sm">Pressure</span>
+                        </div>
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-eye grid-icon"></i>
+                            <span id="w-visibility" class="val-lg">-- km</span>
+                            <span class="lbl-sm">Visibility</span>
+                        </div>
+
+                        <!-- Row 3 -->
+                        <div class="grid-cell">
+                            <i class="fa-regular fa-sun grid-icon"></i>
+                            <span id="w-sunrise" class="val-lg">--:--</span>
+                            <span class="lbl-sm">Sunrise</span>
+                        </div>
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-moon grid-icon"></i>
+                            <span id="w-sunset" class="val-lg">--:--</span>
+                            <span class="lbl-sm">Sunset</span>
+                        </div>
+                        <div class="grid-cell">
+                            <i class="fa-solid fa-cloud grid-icon"></i>
+                            <span id="w-clouds" class="val-lg">--%</span>
+                            <span class="lbl-sm">Cloudiness</span>
+                        </div>
+
+                        <!-- Coords Footer -->
+                        <div class="grid-footer">
+                            <i class="fa-solid fa-location-dot"></i> <span id="w-coords">Lat: --, Lon: --</span>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
-            <button id="search-again-btn" type="button" class="send-btn" style="margin-top: 2rem;">
-                Check Another Location
-            </button>
         </div>
 
     </div>

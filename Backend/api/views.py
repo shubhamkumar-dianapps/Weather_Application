@@ -3,19 +3,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import SearchHistory
 import requests
+import logging
 
 from .services import WeatherService
 from .throttles import WeatherAnonThrottle, WeatherUserThrottle
-
 from .serializers import SearchHistorySerializer
 
-
-
-
+logger = logging.getLogger(__name__)
 
 class WeatherView(APIView):
     """
-
     API view to get weather data. 
     Checks local cache first, creating a mock response if not found (placeholder for external API).
     """
@@ -52,6 +49,8 @@ class WeatherView(APIView):
             
             return Response(error_details, status=status_code)
         except Exception as e:
+            # Log the unexpected error
+            logger.error(f"Unexpected error in WeatherView: {e}", exc_info=True)
             return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Log Search History (if authenticated)
@@ -60,7 +59,7 @@ class WeatherView(APIView):
                 WeatherService.log_history(request.user, city, data)
             except Exception as e:
                 # Log error silently or to system logger so user isn't affected
-                print(f"Error logging history: {e}")
+                logger.warning(f"Error logging history: {e}")
         
         return Response(data, status=status.HTTP_200_OK)
 

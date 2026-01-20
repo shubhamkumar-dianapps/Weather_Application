@@ -61,16 +61,34 @@
 }
 
 /* Enhancements for inputs in Auth context */
+/* Enhancements for inputs in Auth context */
 .auth-form input {
-    background: rgba(255, 255, 255, 0.05);
+    width: 100%;
+    padding: 1.2rem 1.5rem;
+    font-size: 1.1rem;
+    background: var(--glass-bg);
     border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    color: #fff;
+    backdrop-filter: blur(5px);
     transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    /* Make password bullets nice */
+    letter-spacing: 1px;
 }
 
 .auth-form input:focus {
-    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    background: rgba(30,30,30, 0.85);
     border-color: var(--primary-accent);
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
     transform: translateY(-2px);
+}
+
+.auth-form input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+    letter-spacing: 0.5px;
 }
 
 @keyframes fadeIn {

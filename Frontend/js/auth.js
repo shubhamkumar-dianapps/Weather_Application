@@ -56,6 +56,20 @@ window.Auth = {
         return { success: false, error: data.detail || 'Login failed' };
     },
 
+    async register(username, email, password) {
+        const res = await fetch(`${API_BASE}/auth/register/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            return { success: true };
+        }
+        return { success: false, error: data.detail || 'Registration failed' };
+    },
+
     logout() {
         this.clearTokens();
         window.location.href = 'login.html';

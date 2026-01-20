@@ -1,7 +1,10 @@
 import requests
+import logging
 from django.conf import settings
 from django.utils import timezone
 from .models import WeatherCache, SearchHistory
+
+logger = logging.getLogger(__name__)
 
 class WeatherService:
     # Get your API key from settings (keep it in .env)
@@ -14,7 +17,6 @@ class WeatherService:
         Logs the search history for an authenticated user.
         """
         if user.is_authenticated:
-            # Normalize to uppercase to avoid "Patna" vs "PATNA" duplicates
             normalized_city = city.strip().upper()
             
             SearchHistory.objects.update_or_create(
@@ -30,7 +32,6 @@ class WeatherService:
         """
         Full logic: Cache Check -> External API Fetch -> Cache Save
         """
-        # Normalize inputs for consistent cache definition
         city = city.strip().upper()
         if state:
             state = state.strip().upper()
@@ -41,7 +42,7 @@ class WeatherService:
         # Manager uses iexact, so passing Upper remains valid
         cached_entry = WeatherCache.objects.get_valid_cache(city, state, country)
         if cached_entry:
-            print(f"Data fetched from DB for {city}")
+            logger.info(f"Data fetched from DB for {city}")
             return cached_entry.data  # Return just the data dict
 
         # 2. If no valid cache, call OpenWeatherMap
@@ -62,7 +63,7 @@ class WeatherService:
         }
 
         try:
-            print("API is hit")
+            logger.info(f"API is hit for {city}")
             response = requests.get(cls.BASE_URL, params=params)
             response.raise_for_status() # Raise error for 4xx or 5xx status
             api_data = response.json()

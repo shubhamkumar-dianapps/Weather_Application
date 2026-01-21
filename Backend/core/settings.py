@@ -12,12 +12,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = os.getenv("DEBUG", "False").strip().lower() == "true"
+DEBUG = os.getenv("DEBUG").strip().lower() == "true"
 
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if host.strip()
+    host.strip() for host in os.getenv("ALLOWED_HOSTS").split(",") if host.strip()
 ]
 
 if not DEBUG and not ALLOWED_HOSTS:
@@ -94,6 +92,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "core.validators.ComplexityValidator"},
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 # -------- I18N --------
 
 LANGUAGE_CODE = "en-us"
@@ -140,9 +142,7 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = False
 
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5500",
-]
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS").split(",")
 
 CORS_ALLOW_CREDENTIALS = False
 

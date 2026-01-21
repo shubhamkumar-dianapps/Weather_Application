@@ -1,87 +1,145 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinLengthValidator, RegexValidator
+from django.db import models
 from django.utils import timezone
-from datetime import timedelta
+from api.utility import get_weather_cache_expiry_delta
 
-# --- Manager for Efficient Querying ---
 
-class WeatherCacheManager(models.Manager):
-    def get_valid_cache(self, city_name, state_name, country):
-        """
-        Custom manager method to find a valid (unexpired) cache entry.
-        """
-        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 60)
-        expiry_limit = timezone.now() - timedelta(minutes=threshold)
-        
-        query = self.filter(city__iexact=city_name, updated_at__gte=expiry_limit)
-        if state_name:
-            query = query.filter(state__iexact=state_name)
-        if country:
-            query = query.filter(country__iexact=country)  
-        return query.first()
+# ============================================================
+# Custom User Model
+# ============================================================
 
-# --- Models ---
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True, verbose_name='Email Address')
-    phone = models.CharField(
-        max_length=15, 
-        unique=True, 
-        verbose_name='Phone Number'
-    )
-    
-    REQUIRED_FIELDS = ['email', 'phone']
+    """
+    Custom user model extending Django's AbstractUser
+    with email and phone number enforcement.
+    """
 
-    def __str__(self):
+    email = models.EmailField(unique=True, verbose_name="Email Address")
+
+    phone = models.CharField(
+        max_length=15,
+        unique=True,
+        verbose_name="Phone Number",
+        validators=[
+            RegexValidator(
+                regex=r"^\+?1?\d{9,15}$",
+                message="Phone number must be entered in the format '+999999999'.",
+            )
+        ],
+    )
+
+    REQUIRED_FIELDS = ["email", "phone"]
+
+    def __str__(self) -> str:
         return self.username
 
 
+# ============================================================
+# Weather Cache
+# ============================================================
+
+
+class WeatherCacheManager(models.Manager):
+    """
+    Custom manager to fetch only valid (non-expired) cache entries.
+    """
+
+    def get_valid_cache(
+        self, city: str, state: str | None = None, country: str | None = None
+    ):
+        expiry_limit = timezone.now() - get_weather_cache_expiry_delta()
+
+        filters = {"city__iexact": city, "updated_at__gte": expiry_limit}
+
+        if state:
+            filters["state__iexact"] = state
+        if country:
+            filters["country__iexact"] = country
+
+        return self.filter(**filters).first()
+
+
 class WeatherCache(models.Model):
+    """
+    Stores raw weather API responses to avoid repeated external calls.
+    JSONField is intentionally used because the provider schema
+    may change over time.
+    """
+
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100)
-    data = models.JSONField(help_text="Full payload from provider")
+    country = models.CharField(max_length=100, validators=[MinLengthValidator(2)])
+
+    data = models.JSONField(help_text="Raw weather provider response payload")
+
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = WeatherCacheManager()
 
     class Meta:
-        # Composite Index: Most searches will be City + Country
-        indexes = [
-            models.Index(fields=['city', 'state', 'country'], name='city_country_idx'),
-        ]
-        # Prevents duplicate rows for the same city/country
-        unique_together = ('city', 'state', 'country')
-        verbose_name = "Weather Cache"  
+        verbose_name = "Weather Cache"
         verbose_name_plural = "Weather Cache"
 
+        indexes = [
+            models.Index(
+                fields=["city", "state", "country"],
+                name="weathercache_index",
+            ),
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["city", "state", "country"],
+                name="unique_weather_cache_location",
+            )
+        ]
 
     @property
-    def is_valid(self):
-        threshold = getattr(settings, 'WEATHER_CACHE_MINUTES', 60)
-        return self.updated_at >= timezone.now() - timedelta(minutes=threshold)
+    def is_valid(self) -> bool:
+        """
+        Determines whether this cache entry is still valid.
+        """
+        return self.updated_at >= timezone.now() - get_weather_cache_expiry_delta()
 
-    def __str__(self):
-        return f"{self.city}, {self.state}, {self.country}"
+    def __str__(self) -> str:
+        parts = [self.city, self.state, self.country]
+        return ", ".join(part for part in parts if part)
+
+
+# ============================================================
+# Search History
+# ============================================================
 
 
 class SearchHistory(models.Model):
+    """
+    Tracks user search history without duplicating weather JSON.
+    References WeatherCache as the single source of truth.
+    """
+
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
-        related_name='search_history'
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="search_history",
     )
-    # Linked to cache so we don't duplicate JSON data in two tables
-    response_data = models.JSONField(help_text="The weather data returned to the user for this search.")
-    # Keep city name here as a backup in case the Cache entry is deleted
+
+    weather_cache = models.JSONField(
+        help_text="Weather data payload", null=True, blank=True
+    )
+
     city_name_queried = models.CharField(max_length=100)
-    timestamp = models.DateTimeField(auto_now=True) # Updates time if user searches same city again
+
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-timestamp']
-        # Ensures a user doesn't have 100 identical rows for the same city
-        unique_together = ('user', 'city_name_queried')
+        ordering = ["-timestamp"]
 
-    def __str__(self):
-        return f"{self.user.username} -> {self.city_name_queried}"
+        indexes = [
+            models.Index(fields=["user"], name="search_history_user_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} searched {self.city_name_queried}"

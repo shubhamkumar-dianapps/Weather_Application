@@ -1,93 +1,149 @@
-import requests
 import logging
-from django.conf import settings
-from django.utils import timezone
+from typing import Optional, Dict, Any
+
+import requests
+import os
 from .models import WeatherCache, SearchHistory
 
 logger = logging.getLogger(__name__)
 
-class WeatherService:
-    # Get your API key from settings (keep it in .env)
-    API_KEY = getattr(settings, 'WEATHER_API_KEY', "fc32ffca6b17e7a997a35a4a63e670b9")
-    BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 
-    @staticmethod
-    def log_history(user, city, data):
-        """
-        Logs the search history for an authenticated user.
-        """
-        if user.is_authenticated:
-            normalized_city = city.strip().upper()
-            
-            SearchHistory.objects.update_or_create(
-                user=user,
-                city_name_queried=normalized_city,
-                defaults={
-                    'response_data': data
-                }
-            )
+class WeatherService:
+    """
+    Service layer responsible for:
+    - Weather cache lookup
+    - External API communication
+    - Cache persistence
+    - Search history logging
+    """
+
+    API_KEY: str = os.getenv("WEATHER_API_KEY")
+    BASE_URL: str = os.getenv("BASE_URL")
+    REQUEST_TIMEOUT: int = int(os.getenv("REQUEST_TIMEOUT_FOR_SERVICE"))  # seconds
+
+    # --------------------------------------------------
+    # Public API
+    # --------------------------------------------------
 
     @classmethod
-    def fetch_weather(cls, city, state=None, country=None):
+    def fetch_weather(
+        cls, city: str, state: Optional[str] = None, country: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Full logic: Cache Check -> External API Fetch -> Cache Save
+        Fetch weather data using cache-first strategy.
         """
-        city = city.strip().upper()
-        if state:
-            state = state.strip().upper()
-        if country:
-            country = country.strip().upper()
 
-        # 1. Try to get valid data from our optimized Database Manager
-        # Manager uses iexact, so passing Upper remains valid
-        cached_entry = WeatherCache.objects.get_valid_cache(city, state, country)
-        if cached_entry:
-            logger.info(f"Data fetched from DB for {city}")
-            return cached_entry.data  # Return just the data dict
+        normalized_city = cls._normalize(city)
+        normalized_state = cls._normalize(state)
+        normalized_country = cls._normalize(country)
 
-        # 2. If no valid cache, call OpenWeatherMap
-        # Construct query: city,state,country code or just city,country
+        # Cache lookup
+        cached = WeatherCache.objects.get_valid_cache(
+            normalized_city,
+            normalized_state,
+            normalized_country,
+        )
+        if cached:
+            logger.info("Weather fetched from cache: %s", normalized_city)
+            return cached.data
+
+        # External API call
+        api_data = cls._fetch_from_provider(
+            normalized_city,
+            normalized_state,
+            normalized_country,
+        )
+
+        # Persist cache
+        weather_cache = cls._save_cache(
+            api_data,
+            normalized_state,
+        )
+
+        return weather_cache.data
+
+    @staticmethod
+    def log_history(user, city_queried: str, data: Dict[str, Any]) -> None:
+        """
+        Persist user search history (only for authenticated users).
+        """
+        if not user or not user.is_authenticated:
+            return
+        # As of now I am updating the search history with the response data in future I add count variable if user refresh or search same city multiple times
+        SearchHistory.objects.update_or_create(
+            user=user,
+            city_name_queried=city_queried.strip(),
+            defaults={
+                "weather_cache": data,
+            },
+        )
+
+    # --------------------------------------------------
+    # Internal helpers
+    # --------------------------------------------------
+
+    @staticmethod
+    def _normalize(value: Optional[str]) -> Optional[str]:
+        """
+        Normalize user input safely.
+        """
+        return value.strip().upper() if value else None
+
+    @classmethod
+    def _fetch_from_provider(
+        cls,
+        city: str,
+        state: Optional[str],
+        country: Optional[str],
+    ) -> Dict[str, Any]:
+        """
+        Call third-party weather API.
+        """
         query_parts = [city]
         if state:
             query_parts.append(state)
-        # Note: If user passes 'INDIA', OWM usually handles it, returning 'IN' in sys.country
         if country:
             query_parts.append(country)
-        
-        q_param = ",".join(query_parts)
 
         params = {
-            'q': q_param,
-            'appid': cls.API_KEY,
-            'units': 'metric'
+            "q": ",".join(query_parts),
+            "appid": cls.API_KEY,
+            "units": "metric",
         }
 
         try:
-            logger.info(f"API is hit for {city}")
-            response = requests.get(cls.BASE_URL, params=params)
-            response.raise_for_status() # Raise error for 4xx or 5xx status
-            api_data = response.json()
-
-            # 3. Update or Create Cache entry
-            # KEY FIX: Use API's standardized Name and Country (e.g. "IN" instead of "INDIA")
-            # to ensure the DB stores the canonical version.
-            canonical_city = api_data.get('name', city).upper()
-            canonical_country = api_data.get('sys', {}).get('country', country).upper()
-
-            weather_obj, created = WeatherCache.objects.update_or_create(
-                city=canonical_city,
-                state=state, # API often doesn't return state clearly, use user's normalized input
-                country=canonical_country,
-                defaults={
-                    'data': api_data,
-                    'updated_at': timezone.now()
-                }
+            logger.info("Calling weather API for %s", city)
+            response = requests.get(
+                cls.BASE_URL,
+                params=params,
+                timeout=cls.REQUEST_TIMEOUT,
             )
-            return weather_obj.data
+            response.raise_for_status()
+            return response.json()
 
-        except requests.exceptions.RequestException as e:
-            # Re-raise to be handled by the view or return None/Error dict
-            # user view expects to catch Exception, so raising is fine.
-            raise e
+        except requests.RequestException as exc:
+            logger.error("Weather API failed: %s", exc, exc_info=True)
+            raise RuntimeError("Failed to fetch weather data") from exc
 
+    @staticmethod
+    def _save_cache(
+        api_data: Dict[str, Any],
+        state: Optional[str],
+    ) -> WeatherCache:
+        """
+        Persist or update weather cache entry using canonical API values.
+        """
 
+        canonical_city = api_data.get("name", "").upper()
+        canonical_country = api_data.get("sys", {}).get("country", "").upper()
+
+        weather_cache, _ = WeatherCache.objects.update_or_create(
+            city=canonical_city,
+            state=state,
+            country=canonical_country,
+            defaults={
+                "data": api_data,
+            },
+        )
+
+        return weather_cache

@@ -16,13 +16,6 @@ A premium, production-ready Weather Application built with **Django** (Backend) 
 The backend is structured into modular apps (`api`, `authorization`) to ensure scalability and clean code separation.
 
 ### 1. **Architecture & Design Patterns**
-
-<!-- -->!
-![Architecture Diagram](diagram.png)
-
-
-
-
 *   **Services Layer (`api/services.py`):** Business logic is decoupled from Views.
     *   `WeatherService` handles the core logic: Check DB -> Fetch API -> Save to DB.
     *   **Data Normalization:** All inputs (City, State, Country) are stripped and capitalized/canonicalized before storage to prevent duplicates (e.g., "London" vs "london").

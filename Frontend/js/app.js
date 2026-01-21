@@ -104,7 +104,12 @@ const App = {
             const data = await response.json();
 
             if (!response.ok) {
-                this.showError(data.error || 'Unable to fetch weather');
+                if (response.status === 429) {
+                    alert("You've reached the daily search limit for guests! \n\nPlease create a free account to continue searching.");
+                    window.location.href = 'register.html';
+                    return;
+                }
+                this.showError(data.detail || data.error || 'Unable to fetch weather');
                 return;
             }
 

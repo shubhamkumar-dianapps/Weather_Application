@@ -1,78 +1,94 @@
-from rest_framework import generics, status, permissions
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from .models import SearchHistory
-import requests
 import logging
+import requests
 
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import SearchHistory
+from .serializers import SearchHistorySerializer
 from .services import WeatherService
 from .throttles import WeatherAnonThrottle, WeatherUserThrottle
-from .serializers import SearchHistorySerializer
+from core.pagination import WeatherHistoryPagination
 
 logger = logging.getLogger(__name__)
 
+
 class WeatherView(APIView):
     """
-    API view to get weather data. 
-    Checks local cache first, creating a mock response if not found (placeholder for external API).
+    Retrieve weather information for a given location.
+    Uses cache-first strategy with external API fallback.
     """
+
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     throttle_classes = [WeatherAnonThrottle, WeatherUserThrottle]
 
-
     def get(self, request):
-        city = request.query_params.get('city')
-        state = request.query_params.get('state')
-        country = request.query_params.get('country')
+        city = request.query_params.get("city")
+        state = request.query_params.get("state")
+        country = request.query_params.get("country")
 
-        if not city:
-            return Response({"error": "City parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
-        if not state:
-            return Response({"error": "State parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
-        if not country:
-            return Response({"error": "Country parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
-        # Use Service Layer
+        # Validate required parameters
+        missing_params = [
+            param
+            for param, value in {
+                "city": city,
+                "state": state,
+                "country": country,
+            }.items()
+            if not value
+        ]
+
+        if missing_params:
+            return Response(
+                {"error": f"Missing required parameters: {', '.join(missing_params)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             data = WeatherService.fetch_weather(city, state, country)
-            
-        except requests.exceptions.RequestException as e:
-            # Handle potential external API errors gracefully
-            error_details = {"error": "Failed to fetch weather data from upstream provider."}
-            status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-            if e.response is not None:
-                status_code = e.response.status_code
-                try:
-                    error_details["upstream_error"] = e.response.json()
-                except ValueError:
-                     error_details["upstream_error"] = e.response.text
-            
-            return Response(error_details, status=status_code)
-        except Exception as e:
-            # Log the unexpected error
-            logger.error(f"Unexpected error in WeatherView: {e}", exc_info=True)
-            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except requests.exceptions.Timeout:
+            logger.warning("Weather API timeout")
+            return Response(
+                {"error": "Weather service is temporarily unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
-        # Log Search History (if authenticated)
+        except requests.exceptions.RequestException:
+            logger.error("Upstream weather API failure", exc_info=True)
+            return Response(
+                {"error": "Failed to fetch weather data."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        except Exception:
+            logger.exception("Unexpected error in WeatherView")
+            return Response(
+                {"error": "An internal server error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Log search history (non-blocking)
         if request.user.is_authenticated:
             try:
                 WeatherService.log_history(request.user, city, data)
-            except Exception as e:
-                # Log error silently or to system logger so user isn't affected
-                logger.warning(f"Error logging history: {e}")
-        
+            except Exception:
+                logger.warning("Failed to log search history", exc_info=True)
+
         return Response(data, status=status.HTTP_200_OK)
+
 
 class SearchHistoryListView(generics.ListAPIView):
     """
-    API view to list search history for the authenticated user.
+    List weather search history for the authenticated user.
     """
+
     serializer_class = SearchHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = WeatherHistoryPagination
 
     def get_queryset(self):
-        # Optimize query to fetch related user data in a single query (solves potential N+1)
-        return SearchHistory.objects.filter(user=self.request.user).select_related('user')
-
-
-
+        return SearchHistory.objects.filter(user=self.request.user).select_related(
+            "user"
+        )
